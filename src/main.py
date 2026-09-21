@@ -25,7 +25,6 @@ def model_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode):
     Fx = 0
     Fy = 0
     dt = sqrt(((m1 * m2) / (m1 + m2) )/ k) / 10000.0
-    T = [0.0]
     n = 0
     while True:
         delta = (r1 + r2) - dist((x1, y1), (x2, y2))
@@ -60,11 +59,11 @@ def draw(r1, r2, v1x, v2x, v1y, v2y, start1, start2, touch1, touch2, x_contact, 
 
     figure, axis = plt.subplots(figsize=(10, 6))
 
-    axis.plot([start1[0], touch1[0]], [start1[1], touch1[1]], "C0")
-    axis.plot([start2[0], touch2[0]], [start2[1], touch2[1]], "C1")
-    axis.plot([touch1[0], end1[0]], [touch1[1], end1[1]], "C0--")
-    axis.plot([touch2[0], end2[0]], [touch2[1], end2[1]], "C1--")
-    axis.plot(x_contact, y_contact, "ko")
+    axis.plot([start1[0], touch1[0]], [start1[1], touch1[1]], "C0", label="Шар 1 до удара")
+    axis.plot([start2[0], touch2[0]], [start2[1], touch2[1]], "C1", label="Шар 2 до удара")
+    axis.plot([touch1[0], end1[0]], [touch1[1], end1[1]], "C0--", label="Шар 1 после удара")
+    axis.plot([touch2[0], end2[0]], [touch2[1], end2[1]], "C1--", label="Шар 2 после удара")
+    axis.plot(x_contact, y_contact, "ko", label="Точка контакта")
     for c, r, color, style in [(start1, r1, "C0", "-"), (start2, r2, "C1", "-"),
                                (touch1, r1, "C0", "--"), (touch2, r2, "C1", "--"),
                                (end1, r1, "C0", ":"), (end2, r2, "C1", ":")]:
