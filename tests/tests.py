@@ -1,6 +1,6 @@
 from math import cos, sin, radians
 from src.main import model_contact
-from tests.analytics import momentum, kinetic_energy, transverse_momentum
+from tests.analytics import p, Ek, p_ort
 
 
 total = 0
@@ -19,22 +19,38 @@ def check(name, got, expected, max_diff):
 
 def test(mode, m1, m2, u1, u2, angle=0):
     nx, ny = cos(radians(angle)), sin(radians(angle))
-    ux1, uy1 = u1[0]*nx - u1[1]*ny, u1[0]*ny + u1[1]*nx
-    ux2, uy2 = u2[0]*nx - u2[1]*ny, u2[0]*ny + u2[1]*nx
+    ux1, uy1 = u1[0] * nx - u1[1] * ny, u1[0] * ny + u1[1] * nx
+    ux2, uy2 = u2[0] * nx - u2[1] * ny, u2[0] * ny + u2[1] * nx
     vx1, vx2, vy1, vy2, *_ = model_contact(
-        1, 1, ux1, ux2, uy1, uy2, 0, 2*nx, 0, 2*ny, m1, m2, 1e8, mode)
+        1, 1, ux1, ux2, uy1, uy2, 0, 2 * nx, 0, 2 * ny, m1, m2, 1e8, mode
+    )
 
-    print(f"\n{'Гук' if mode == 1 else 'Герц'}: m = ({m1}, {m2}), u = {u1}, {u2}, угол = {angle}°")
-    check("импульс x", momentum(m1, m2, vx1, vx2), momentum(m1, m2, ux1, ux2), 1e-8)
-    check("импульс y", momentum(m1, m2, vy1, vy2), momentum(m1, m2, uy1, uy2), 1e-8)
+    print(
+        f"\n{'Гук' if mode == 1 else 'Герц'}: m = ({m1}, {m2}), u = {u1}, {u2}, угол = {angle}°"
+    )
+    check("импульс x", p(m1, m2, vx1, vx2), p(m1, m2, ux1, ux2), 1e-8)
+    check("импульс y", p(m1, m2, vy1, vy2), p(m1, m2, uy1, uy2), 1e-8)
 
-    e0 = kinetic_energy(m1, m2, ux1, uy1, ux2, uy2)
-    check("кинетическая энергия", kinetic_energy(m1, m2, vx1, vy1, vx2, vy2), e0, 1e-7*e0)
+    e0 = Ek(m1, m2, ux1, uy1, ux2, uy2)
+    check(
+        "кинетическая энергия",
+        Ek(m1, m2, vx1, vy1, vx2, vy2),
+        e0,
+        1e-7 * e0,
+    )
 
-    check("поперечный импульс 1", transverse_momentum(m1, vx1, vy1, nx, ny),
-          transverse_momentum(m1, ux1, uy1, nx, ny), 1e-3)
-    check("поперечный импульс 2", transverse_momentum(m2, vx2, vy2, nx, ny),
-          transverse_momentum(m2, ux2, uy2, nx, ny), 1e-3)
+    check(
+        "поперечный импульс 1",
+        p_ort(m1, vx1, vy1, nx, ny),
+        p_ort(m1, ux1, uy1, nx, ny),
+        1e-3,
+    )
+    check(
+        "поперечный импульс 2",
+        p_ort(m2, vx2, vy2, nx, ny),
+        p_ort(m2, ux2, uy2, nx, ny),
+        1e-3,
+    )
 
 
 if __name__ == "__main__":
