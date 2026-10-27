@@ -21,9 +21,34 @@ def time_to_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2):
     return C / (-B + D**0.5)
 
 
+def check_params(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode):
+    if m1 <= 0 or m2 <= 0:
+        raise ValueError("массы шаров должны быть больше нуля")
+    if r1 <= 0 or r2 <= 0:
+        raise ValueError("радиусы шаров должны быть больше нуля")
+    if k <= 0:
+        raise ValueError("жёсткость k должна быть больше нуля")
+    if mode not in (1, 2):
+        raise ValueError("mode должен быть 1 (Гук) или 2 (Герц)")
+    if dist((x1, y1), (x2, y2)) < r1 + r2:
+        raise ValueError("в начальный момент шары не должны пересекаться")
+    if hypot(v1x, v1y) > 3e7 or hypot(v2x, v2y) > 3e7:
+        raise ValueError("скорости должны быть меньше 0.1 скорости света (3e7 м/с)")
+
+
+def max_deformation(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode):
+    mu = (m1 * m2) / (m1 + m2)
+    u = ((v1x - v2x) * (x2 - x1) + (v1y - v2y) * (y2 - y1)) / dist((x1, y1), (x2, y2))
+    if (mode == 1):
+        return u * sqrt(mu / k)
+    return (5 * mu * u ** 2 / (4 * k)) ** (2/5)
+
+
 def model_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode):
     Fx = 0
     Fy = 0
+    delta_max = 0
+    t_contact = 0
     dt = sqrt(((m1 * m2) / (m1 + m2) )/ k) / 10000.0
     n = 0
     while True:
@@ -32,6 +57,9 @@ def model_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode):
         deltay_norm = (y1 - y2) / hypot(x1- x2, y1 - y2)
         if (delta < 0):
             delta = 0
+        if (delta > 0):
+            t_contact += dt
+        delta_max = max(delta_max, delta)
         if (mode == 1):
             Fx = - delta * k * deltax_norm
             Fy = - delta * k * deltay_norm
@@ -49,7 +77,7 @@ def model_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode):
         if (delta <= 0 and n > 0):
             break
         n += 1;
-    return v1x, v2x, v1y, v2y, x1, x2, y1, y2
+    return v1x, v2x, v1y, v2y, x1, x2, y1, y2, delta_max, t_contact
 
 
 def draw(r1, r2, v1x, v2x, v1y, v2y, start1, start2, touch1, touch2, x_contact, y_contact):
@@ -92,7 +120,9 @@ def main():
 
     k = 1e8          # жёсткость
     mode = 1         # 1 - закон Гука, 2 - закон Герца
+    max_part = 0.1   # максимальная деформация в долях меньшего радиуса
 
+    check_params(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode)
     t = time_to_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2)
     if t is None:
         print("Столкновение не произошло")
@@ -105,11 +135,19 @@ def main():
     x_contact = x1 + (x2 - x1) * (r1 / (r1 + r2))
     y_contact = y1 + (y2 - y1) * (r1 / (r1 + r2))
 
-    v1x, v2x, v1y, v2y, x1, x2, y1, y2 = model_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode)
+    delta = max_deformation(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode)
+    if delta > max_part * min(r1, r2):
+        print(f"Максимальная деформация {delta:.3g} больше {max_part} от меньшего радиуса: "
+              "шары слишком мягкие для такой скорости, увеличьте k или уменьшите скорости")
+        return
+
+    v1x, v2x, v1y, v2y, x1, x2, y1, y2, delta_max, t_contact = model_contact(r1, r2, v1x, v2x, v1y, v2y, x1, x2, y1, y2, m1, m2, k, mode)
     print(f"Столкновение произошло через {t:.2f} секунд")
     print(f"Координата столкновения: ({x_contact:.2f}, {y_contact:.2f})")
     print(f"Первый шар: V1 = ({v1x:.2f}, {v1y:.2f})")
     print(f"Второй шар: V2 = ({v2x:.2f}, {v2y:.2f})")
+    print(f"Максимальная деформация: {delta_max:.3g} (оценка {delta:.3g})")
+    print(f"Длительность контакта: {t_contact:.3g} секунд")
     draw(r1, r2, v1x, v2x, v1y, v2y, start1, start2, touch1, touch2, x_contact, y_contact)
 
 

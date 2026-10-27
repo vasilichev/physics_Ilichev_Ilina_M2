@@ -1,6 +1,6 @@
 from math import cos, sin, radians
 from src.main import model_contact
-from tests.analytics import p, Ek, p_ort
+from tests.analytics import p, Ek, p_ort, delta_max, t_contact
 
 
 total = 0
@@ -53,6 +53,19 @@ def test(mode, m1, m2, u1, u2, angle=0):
     )
 
 
+def test_contact(mode, m1, m2, u, k):
+    _, _, _, _, _, _, _, _, d, t = model_contact(
+        1, 1, u, 0, 0, 0, 0, 2, 0, 0, m1, m2, k, mode
+    )
+    mu = m1 * m2 / (m1 + m2)
+
+    print(f"\n{'Гук' if mode == 1 else 'Герц'}: m = ({m1}, {m2}), u = {u}, k = {k:.0e}")
+    d0 = delta_max(mu, u, k, mode)
+    check("макс. деформация", d, d0, 1e-3 * d0)
+    t0 = t_contact(mu, u, k, mode)
+    check("время контакта", t, t0, 1e-3 * t0)
+
+
 if __name__ == "__main__":
     for mode in (1, 2):
         # Лобовые удары: равные и разные массы, неподвижные и движущиеся шары.
@@ -70,6 +83,12 @@ if __name__ == "__main__":
         test(mode, 1, 1, (2, -1), (0, 0))
         test(mode, 2, 1, (2, 1), (-1, 0.5), 90)
         test(mode, 1, 1, (2, 1), (0, 0), 45)
+
+        # Максимальная деформация и время контакта
+        test_contact(mode, 1, 1, 2, 1e8)
+        test_contact(mode, 2, 1, 2, 1e8)
+        test_contact(mode, 1, 1, 10, 1e8)
+        test_contact(mode, 1, 1, 2, 1e6)
 
     print(f"\n{passed} / {total}")
     raise SystemExit(0 if passed == total else 1)
